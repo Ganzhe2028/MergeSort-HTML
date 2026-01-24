@@ -2,18 +2,17 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>Merge Sort 全流程演示 (含计算原理 & 键盘控制)</title>
+    <title>Merge Sort 全链路演示 (Setup + Merge)</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #f4f6f8; 
             margin: 0; padding: 20px;
             display: flex; justify-content: center; height: 100vh; box-sizing: border-box;
-            outline: none; /* 防止键盘聚焦时的轮廓 */
         }
 
         .main-wrapper {
-            display: flex; width: 100%; max-width: 1300px;
+            display: flex; width: 100%; max-width: 1280px;
             background: white; border-radius: 16px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.1); overflow: hidden; height: 90vh;
         }
@@ -25,116 +24,108 @@
         
         .log-box { 
             background: #f1f8ff; border-left: 4px solid #0366d6; 
-            padding: 20px; border-radius: 6px; margin-bottom: 30px; 
-            font-size: 16px; line-height: 1.6; color: #24292e; min-height: 80px;
-            transition: all 0.2s;
+            padding: 20px; border-radius: 6px; margin-bottom: 50px; 
+            font-size: 16px; line-height: 1.6; color: #24292e; min-height: 70px;
+            transition: all 0.3s;
         }
 
-        /* 数学区 */
-        .math-zone {
-            background: #fff; border: 2px dashed #e1e4e8; border-radius: 8px;
-            padding: 15px; margin-bottom: 30px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 60px; opacity: 0; transition: opacity 0.5s;
-        }
-        .math-visible { opacity: 1; }
-        .math-formula { font-family: 'Times New Roman', serif; font-size: 26px; font-style: italic; color: #24292e; }
-        .math-explain { font-size: 14px; color: #586069; margin-top: 8px; font-family: sans-serif;}
-
-        .array-group { display: flex; gap: 60px; margin-bottom: 40px; align-items: flex-start; min-height: 100px;}
+        .array-group { display: flex; gap: 80px; margin-bottom: 80px; align-items: flex-start; min-height: 100px;}
         .array-section { 
             display: flex; flex-direction: column; align-items: center; 
-            position: relative; padding-top: 40px; transition: opacity 0.5s;
+            position: relative; padding-top: 40px; 
+            transition: opacity 0.5s;
         }
         
-        .label { position: absolute; top: -10px; font-weight: 700; color: #586069; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase; }
-        .array-row { display: flex; gap: 12px; }
+        .label { 
+            position: absolute; top: -10px; 
+            font-weight: 700; color: #586069; font-size: 14px; letter-spacing: 0.5px; text-transform: uppercase;
+        }
+        .array-row { display: flex; gap: 14px; }
 
-        .cell-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; min-width: 54px; }
+        .cell-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; min-width: 56px; }
+        
         .cell {
-            width: 54px; height: 54px; 
-            border: 2px solid #e1e4e8; border-radius: 10px;
+            width: 56px; height: 56px; 
+            border: 2px solid #e1e4e8; border-radius: 12px;
             display: flex; justify-content: center; align-items: center;
-            font-size: 22px; font-weight: 700; color: #24292e;
+            font-size: 24px; font-weight: 700; color: #24292e;
             background: #fff; 
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             z-index: 1; position: relative;
         }
-        .cell-empty { border: 2px dashed #d1d5da; color: transparent; background: #fafbfc; } 
-        .index { font-size: 12px; color: #959da5; margin-top: 8px; font-family: 'SFMono-Regular', Consolas, monospace; }
-
-        /* 范围指示器 */
-        .range-bracket {
-            position: absolute; height: 10px; border: 3px solid; border-bottom: none;
-            top: -25px; transition: all 0.3s; opacity: 0; border-radius: 4px 4px 0 0;
-        }
-        .range-left { border-color: #d73a49; } 
-        .range-right { border-color: #0366d6; }
-        .range-full { border-color: #6f42c1; } /* 紫色 bracket 用于显示总范围 */
+        .cell-empty { border: 2px dashed #d1d5da; color: transparent; background: #fafbfc; } /* 空格子样式 */
+        .index { font-size: 12px; color: #959da5; margin-top: 10px; font-family: 'SFMono-Regular', Consolas, monospace; }
+        .cell-ghost { border: 2px dashed #e1e4e8; color: #d1d5da; background: transparent; }
 
         /* 指针 */
         .pointer-container {
-            position: absolute; top: 0; left: 0; width: 54px; height: 40px; 
+            position: absolute; top: 0; left: 0; width: 56px; height: 40px; 
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s; 
-            z-index: 20; pointer-events: none; opacity: 0;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s; 
+            z-index: 20; pointer-events: none; opacity: 0; /* 默认隐藏 */
         }
         .pointer-visible { opacity: 1 !important; }
-        .ptr-tag { font-size: 14px; font-weight: 800; margin-bottom: 2px; text-shadow: 0 2px 4px rgba(255,255,255,0.8); }
-        .arrow { width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 10px solid; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.15)); }
         
+        .ptr-tag { font-size: 14px; font-weight: 800; margin-bottom: 2px; text-shadow: 0 2px 4px rgba(255,255,255,0.8); }
+        .arrow {
+            width: 0; height: 0; 
+            border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 12px solid; 
+            filter: drop-shadow(0 4px 4px rgba(0,0,0,0.15));
+        }
+
         .ptr-i .ptr-tag { color: #d73a49; } .ptr-i .arrow { border-top-color: #d73a49; }
         .ptr-j .ptr-tag { color: #0366d6; } .ptr-j .arrow { border-top-color: #0366d6; }
         .ptr-k .ptr-tag { color: #28a745; } .ptr-k .arrow { border-top-color: #28a745; }
 
-        /* 状态高亮 */
+        /* 状态 */
         .dimmed { opacity: 0.3; filter: grayscale(100%); transform: scale(0.96); border-color: #eaecef; }
-        .highlight-cell { border-color: #f9826c !important; background-color: #fff5f2 !important; color: #cf222e !important; transform: scale(1.1); z-index: 10; opacity: 1 !important; filter: none !important; }
-        .source-cell { border-color: #2188ff !important; background-color: #f1f8ff !important; color: #0366d6 !important; transform: scale(1.05); opacity: 1 !important; filter: none !important; }
-        .copied-cell { background-color: #f0fff4 !important; border-color: #28a745 !important; color: #22863a !important; opacity: 1 !important; filter: none !important; }
+        
+        .highlight-cell {
+            border-color: #f9826c !important; background-color: #fff5f2 !important; color: #cf222e !important;
+            transform: scale(1.12); z-index: 10; opacity: 1 !important; filter: none !important;
+        }
+        /* 复制源高亮 (Setup阶段用) */
+        .source-cell {
+            border-color: #2188ff !important; background-color: #f1f8ff !important; color: #0366d6 !important;
+            transform: scale(1.05); opacity: 1 !important; filter: none !important;
+        }
+        
+        .copied-cell {
+            background-color: #f0fff4 !important; border-color: #28a745 !important; color: #22863a !important;
+            opacity: 1 !important; filter: none !important;
+        }
 
-        /* 代码区 */
-        .code-content { font-family: 'SFMono-Regular', Consolas, monospace; font-size: 13px; line-height: 1.8; color: #6a737d; }
-        .code-line { padding: 0 12px; border-radius: 4px; border-left: 3px solid transparent; display: block; margin-bottom: 2px;}
+        /* 代码 */
+        .code-content { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; font-size: 13px; line-height: 1.8; color: #6a737d; }
+        .code-line { padding: 0 16px; border-radius: 6px; border-left: 4px solid transparent; display: block; margin-bottom: 2px;}
         .code-active { color: #24292e; background-color: #fffbdd; border-left-color: #f1e05a; font-weight: 600; }
         .code-keyword { color: #d73a49; } .code-comment { color: #969896; } .code-type { color: #d73a49; }
         .indent-1 { margin-left: 20px; } .indent-2 { margin-left: 40px; }
 
-        .controls { margin-top: auto; display: flex; gap: 16px; padding-top: 24px; border-top: 1px solid #eaecef; justify-content: space-between; align-items: center;}
-        .btn-group { display: flex; gap: 10px; }
+        .controls { margin-top: auto; display: flex; gap: 16px; padding-top: 24px; border-top: 1px solid #eaecef; }
         button { 
-            padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer; 
-            background: #24292e; color: white; border: none; border-radius: 6px; 
-            transition: all 0.2s; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 12px 32px; font-size: 15px; font-weight: 600; cursor: pointer; 
+            background: #24292e; color: white; border: none; border-radius: 8px; 
+            transition: all 0.2s; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        button:hover { background: #000; transform: translateY(-1px); }
+        button:hover { background: #000; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
         button:disabled { background: #f6f8fa; color: #959da5; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #e1e4e8; }
-        .key-hint { font-size: 12px; color: #959da5; background: #f6f8fa; padding: 4px 8px; border-radius: 4px; border: 1px solid #e1e4e8; }
     </style>
 </head>
 <body>
 
 <div class="main-wrapper">
     <div class="viz-panel">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <h2>Merge Sort 全流程深度拆解</h2>
-            <div class="key-hint">键盘 ⬅️ ➡️ 翻页</div>
-        </div>
-        
+        <h2>Merge Sort 全链路拆解</h2>
         <div class="log-box" id="log-text">准备开始...</div>
-        
-        <div class="math-zone" id="math-zone">
-            <div class="math-formula" id="math-formula"></div>
-            <div class="math-explain" id="math-explain"></div>
-        </div>
 
         <div class="array-group">
-            <div class="array-section" id="section-l" style="opacity: 0;">
+            <div class="array-section" id="section-l" style="opacity: 0.5;">
                 <span class="label">L[] (Temp)</span>
                 <div id="ptr-i" class="pointer-container ptr-i"><div class="ptr-tag">i</div><div class="arrow"></div></div>
                 <div class="array-row" id="l-container"></div>
             </div>
-            <div class="array-section" id="section-r" style="opacity: 0;">
+            <div class="array-section" id="section-r" style="opacity: 0.5;">
                 <span class="label">R[] (Temp)</span>
                 <div id="ptr-j" class="pointer-container ptr-j"><div class="ptr-tag">j</div><div class="arrow"></div></div>
                 <div class="array-row" id="r-container"></div>
@@ -143,321 +134,332 @@
 
         <div class="array-section" id="section-arr" style="margin-top: auto; margin-bottom: 20px; width: 100%;">
             <span class="label">arr[] (Original)</span>
-            
-            <div id="bracket-n1" class="range-bracket range-left"></div>
-            <div id="bracket-n2" class="range-bracket range-right"></div>
-            <div id="bracket-full" class="range-bracket range-full"></div>
-
             <div id="ptr-k" class="pointer-container ptr-k"><div class="ptr-tag">k</div><div class="arrow"></div></div>
             <div class="array-row" id="arr-container"></div>
         </div>
 
         <div class="controls">
-            <div class="btn-group">
-                <button onclick="prevStep()" id="btn-prev" disabled>⬅️ 上一步</button>
-                <button onclick="nextStep()" id="btn-next">下一步 ➡️</button>
-            </div>
-            <div style="color:#586069; font-size:14px;">
-                Step <span id="step-count" style="margin:0 4px; font-weight:700; color:#24292e;">0</span>
+            <button onclick="prevStep()" id="btn-prev" disabled>上一步</button>
+            <button onclick="nextStep()" id="btn-next">下一步</button>
+            <div style="margin-left:auto; display:flex; align-items:center; color:#586069; font-size:14px;">
+                Step: <span id="step-count" style="margin-left:6px; font-weight:700; color:#24292e;">0</span>
             </div>
         </div>
     </div>
 
     <div class="code-panel">
         <div class="code-content">
-            <div class="code-line" id="line-func">void merge(int[] arr, int left, int mid, int right) {</div>
-            <div class="code-line indent-1" id="line-mid"><span class="code-comment">// 注：mid = (left + right) / 2</span></div>
+            <div class="code-line" id="line-calc"><span class="code-type">int</span> n1 = mid - left + 1; <span class="code-type">int</span> n2 = right - mid;</div>
+            <div class="code-line" id="line-new"><span class="code-type">int</span>[] L = <span class="code-keyword">new</span> <span class="code-type">int</span>[n1]; <span class="code-type">int</span>[] R = <span class="code-keyword">new</span> <span class="code-type">int</span>[n2];</div>
             <br>
-            <div class="code-line indent-1" id="line-calc1"><span class="code-type">int</span> n1 = mid - left + 1;</div>
-            <div class="code-line indent-1" id="line-calc2"><span class="code-type">int</span> n2 = right - mid;</div>
-            <div class="code-line indent-1" id="line-new"><span class="code-type">int</span>[] L = <span class="code-keyword">new</span> <span class="code-type">int</span>[n1]; <span class="code-type">int</span>[] R = <span class="code-keyword">new</span> <span class="code-type">int</span>[n2];</div>
+            <div class="code-line" id="line-for1"><span class="code-keyword">for</span> (<span class="code-type">int</span> i=0; i&lt;n1; ++i) L[i] = arr[left + i];</div>
+            <div class="code-line" id="line-for2"><span class="code-keyword">for</span> (<span class="code-type">int</span> j=0; j&lt;n2; ++j) R[j] = arr[mid + 1 + j];</div>
             <br>
-            <div class="code-line indent-1" id="line-for1"><span class="code-keyword">for</span> (<span class="code-type">int</span> i=0; i&lt;n1; ++i) L[i] = arr[left + i];</div>
-            <div class="code-line indent-1" id="line-for2"><span class="code-keyword">for</span> (<span class="code-type">int</span> j=0; j&lt;n2; ++j) R[j] = arr[mid + 1 + j];</div>
+            <div class="code-line" id="line-1">int i = 0, j = 0;</div>
+            <div class="code-line" id="line-2">int k = left;</div>
             <br>
-            <div class="code-line indent-1" id="line-1">int i = 0, j = 0;</div>
-            <div class="code-line indent-1" id="line-2">int k = left;</div>
+            <div class="code-line" id="line-3">while (i < n1 && j < n2) {</div>
+            <div class="code-line indent-1" id="line-4"><span class="code-keyword">if</span> (L[i] <= R[j]) {</div>
+            <div class="code-line indent-2" id="line-5">arr[k] = L[i]; <span class="code-comment">// 取左边</span></div>
+            <div class="code-line indent-2" id="line-6">i++;</div>
+            <div class="code-line indent-1" id="line-7">} <span class="code-keyword">else</span> {</div>
+            <div class="code-line indent-2" id="line-8">arr[k] = R[j]; <span class="code-comment">// 取右边</span></div>
+            <div class="code-line indent-2" id="line-9">j++;</div>
+            <div class="code-line indent-1" id="line-10">}</div>
+            <div class="code-line indent-1" id="line-11">k++;</div>
+            <div class="code-line" id="line-12">}</div>
             <br>
-            <div class="code-line indent-1" id="line-3">while (i < n1 && j < n2) {</div>
-            <div class="code-line indent-2" id="line-4"><span class="code-keyword">if</span> (L[i] <= R[j]) {</div>
-            <div class="code-line indent-3" id="line-5">arr[k] = L[i]; <span class="code-comment">// 取左边</span></div>
-            <div class="code-line indent-3" id="line-6">i++;</div>
-            <div class="code-line indent-2" id="line-7">} <span class="code-keyword">else</span> {</div>
-            <div class="code-line indent-3" id="line-8">arr[k] = R[j]; <span class="code-comment">// 取右边</span></div>
-            <div class="code-line indent-3" id="line-9">j++;</div>
-            <div class="code-line indent-2" id="line-10">}</div>
-            <div class="code-line indent-2" id="line-11">k++;</div>
-            <div class="code-line indent-1" id="line-12">}</div>
-            <br>
-            <div class="code-line indent-1" id="line-13"><span class="code-comment">// 处理剩余元素</span></div>
-            <div class="code-line indent-1" id="line-14">while (i < n1) { arr[k++]=L[i++]; }</div>
-            <div class="code-line indent-1" id="line-15">while (j < n2) { ... }</div>
-            <div class="code-line" id="line-end">}</div>
+            <div class="code-line" id="line-13"><span class="code-comment">// 处理剩余元素</span></div>
+            <div class="code-line" id="line-14">while (i < n1) { ... }</div>
         </div>
     </div>
 </div>
 
 <script>
+    // 定义数据结构：使用特殊值 'EMPTY' 表示格子已创建但未赋值
     const EMPTY = 'EMPTY';
     const GHOST = null;
-    const Arr_init = [3, 27, 9, 10, GHOST]; // Indices 0, 1, 2, 3 in data. Visual offset +2.
     
-    // 我们假设 arr 的 index 2,3,4,5 对应 data 的 0,1,2,3
-    // left=2, right=5. mid = (2+5)/2 = 3.
+    // 初始状态
+    const Arr_init = [3, 27, 9, 10, GHOST]; // 原数组一直都在
 
+    // 步骤定义
     const steps = [
-        // --- 0. Context: Function Call ---
+        // --- Phase 1: Setup ---
         {
-            text: "<b>Context:</b> 递归函数 `merge` 被调用。<br>告诉我们要合并的范围是: <span class='key-hint'>[2 ... 5]</span>。",
-            L: [], R: [], arr: [3, 27, 9, 10, GHOST], hideL: true, hideR: true,
-            bracket: { id: 'bracket-full', start: 0, width: 4 }, // Covers all 4 elements
-            lines: ['line-func']
+            text: "<b>Setup:</b> 计算子数组长度 n1=2, n2=2。",
+            L: [], R: [], arr: [3, 27, 9, 10, GHOST],
+            hideL: true, hideR: true, // 初始隐藏 L/R
+            lines: ['line-calc']
         },
-        // --- 1. Explain Mid ---
         {
-            text: "<b>Step 1:</b> 计算切分点 `mid`。<br>公式: (left + right) / 2",
-            L: [], R: [], arr: [3, 27, 9, 10, GHOST], hideL: true, hideR: true,
-            math: { formula: "mid = (2 + 5) / 2 = 3.5", explain: "整数除法向下取整 -> <b>mid = 3</b>" },
-            bracket: { id: 'bracket-full', start: 0, width: 4 },
-            focus: ['cell-arr-1'], // index 3 (2+1)
-            lines: ['line-mid']
-        },
-        // --- 2. Explain n1 ---
-        {
-            text: "<b>Step 2:</b> 计算左边长度 `n1` (包含 mid)。<br>范围 [left, mid] 即 [2, 3]。",
-            L: [], R: [], arr: [3, 27, 9, 10, GHOST], hideL: true, hideR: true,
-            math: { formula: "n1 = mid - left + 1", explain: "3 - 2 + 1 = <b>2</b>" },
-            bracket: { id: 'bracket-n1', start: 0, width: 2 },
-            focus: ['cell-arr-0', 'cell-arr-1'],
-            lines: ['line-calc1']
-        },
-        // --- 3. Explain n2 ---
-        {
-            text: "<b>Step 3:</b> 计算右边长度 `n2` (从 mid+1 开始)。<br>范围 (mid, right] 即 [4, 5]。",
-            L: [], R: [], arr: [3, 27, 9, 10, GHOST], hideL: true, hideR: true,
-            math: { formula: "n2 = right - mid", explain: "5 - 3 = <b>2</b>" },
-            bracket: { id: 'bracket-n2', start: 2, width: 2 },
-            focus: ['cell-arr-2', 'cell-arr-3'],
-            lines: ['line-calc2']
-        },
-        // --- 4. Setup Arrays ---
-        {
-            text: "<b>Setup:</b> 根据 n1, n2 创建临时数组 L 和 R。<br>此时它们是空的。",
+            text: "<b>Setup:</b> 创建临时数组 L 和 R。<br>此时它们是空的（或均为0）。",
             L: [EMPTY, EMPTY, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
-            hideL: false, hideR: false,
+            hideL: false, hideR: false, // 显示空格子
             lines: ['line-new']
         },
-        // --- Copy Loops (Simplified for brevity but kept logical) ---
         {
-            text: "<b>Copy:</b> 复制左边数据到 L。",
-            L: [3, 27, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
-            focus: ['cell-l-0', 'cell-l-1', 'cell-arr-0', 'cell-arr-1'],
+            text: "<b>Copy (Loop 1):</b> 准备复制左半部分数据到 L。",
+            L: [EMPTY, EMPTY, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
             lines: ['line-for1']
         },
         {
-            text: "<b>Copy:</b> 复制右边数据到 R。",
-            L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
-            focus: ['cell-r-0', 'cell-r-1', 'cell-arr-2', 'cell-arr-3'],
+            text: "<b>Copy:</b> L[0] = arr[2+0] (即 arr[2])。<br>将 3 复制过去。",
+            L: [3, EMPTY, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
+            focus: ['cell-arr-0', 'cell-l-0'], // 高亮来源和去向
+            lines: ['line-for1']
+        },
+        {
+            text: "<b>Copy:</b> L[1] = arr[2+1] (即 arr[3])。<br>将 27 复制过去。",
+            L: [3, 27, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
+            focus: ['cell-arr-1', 'cell-l-1'],
+            lines: ['line-for1']
+        },
+        {
+            text: "<b>Copy (Loop 2):</b> 准备复制右半部分数据到 R。",
+            L: [3, 27, GHOST], R: [EMPTY, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
             lines: ['line-for2']
         },
-
-        // --- MERGE PHASE START ---
-        // 这一部分完全不省略，一步一步来
         {
-            text: "<b>Merge 初始化:</b> i=0, j=0, k=left(2)。<br>准备合并。",
+            text: "<b>Copy:</b> R[0] = arr[3+1+0] (即 arr[4])。<br>将 9 复制过去。",
+            L: [3, 27, GHOST], R: [9, EMPTY, GHOST], arr: [3, 27, 9, 10, GHOST],
+            focus: ['cell-arr-2', 'cell-r-0'],
+            lines: ['line-for2']
+        },
+        {
+            text: "<b>Copy:</b> R[1] = arr[3+1+1] (即 arr[5])。<br>将 10 复制过去。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
-            i: 0, j: 0, k: 0, showPtrs: true,
+            focus: ['cell-arr-3', 'cell-r-1'],
+            lines: ['line-for2']
+        },
+        
+        // --- Phase 2: Merge (接之前的逻辑) ---
+        {
+            text: "<b>初始化 Merge:</b> 指针归位。i=0, j=0, k=left(2)。<br>准备开始双指针竞速。",
+            L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
+            i: 0, j: 0, k: 0,
+            showPtrs: true, // 显示指针
             lines: ['line-1', 'line-2']
         },
-
-        // --- Comparison 1: 3 vs 9 ---
+        // ... 接之前的 Steps (稍微调整下标对应)
         {
-            text: "<b>比较:</b> L[0] (3) vs R[0] (9)。<br>3 < 9，左边胜出。",
+            text: "<b>比较：</b> L[0] (3) vs R[0] (9)。<br>3 < 9，左边小。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
             i: 0, j: 0, k: 0, showPtrs: true,
             focus: ['cell-l-0', 'cell-r-0'], activeL: 0, activeR: 0, lines: ['line-4']
         },
         {
-            text: "<b>赋值:</b> 把 L[0] (3) 填入 arr[k]。",
+            text: "<b>赋值：</b> L[0] (3) 填入 arr[k]。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
             i: 0, j: 0, k: 0, showPtrs: true,
-            focus: ['cell-l-0', 'cell-arr-0'], copied: 0, lines: ['line-5']
+            focus: ['cell-l-0', 'cell-arr-0'], activeL: 0, copied: 0, lines: ['line-5']
         },
         {
-            text: "<b>指针移动:</b> i++, k++。",
+            text: "<b>移动 i：</b> L 指针后移。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
-            i: 1, j: 0, k: 1, showPtrs: true, lines: ['line-6', 'line-11']
+            i: 1, j: 0, k: 0, showPtrs: true, lines: ['line-6']
         },
-
-        // --- Comparison 2: 27 vs 9 ---
         {
-            text: "<b>比较:</b> L[1] (27) vs R[0] (9)。<br>27 > 9，右边胜出。",
+            text: "<b>移动 k：</b> arr 指针后移。",
+            L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
+            i: 1, j: 0, k: 1, showPtrs: true, lines: ['line-11']
+        },
+        {
+            text: "<b>比较：</b> L[1] (27) vs R[0] (9)。<br>27 > 9，右边小。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 27, 9, 10, GHOST],
             i: 1, j: 0, k: 1, showPtrs: true,
             focus: ['cell-l-1', 'cell-r-0'], activeL: 1, activeR: 0, lines: ['line-4', 'line-7']
         },
         {
-            text: "<b>赋值:</b> 把 R[0] (9) 填入 arr[k]。",
+            text: "<b>赋值：</b> R[0] (9) 填入 arr[k]。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 9, 10, GHOST],
             i: 1, j: 0, k: 1, showPtrs: true,
-            focus: ['cell-r-0', 'cell-arr-1'], copied: 1, lines: ['line-8']
+            focus: ['cell-r-0', 'cell-arr-1'], activeR: 0, copied: 1, lines: ['line-8']
         },
         {
-            text: "<b>指针移动:</b> j++, k++。",
+            text: "<b>移动 j：</b> R 指针后移。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 9, 10, GHOST],
-            i: 1, j: 1, k: 2, showPtrs: true, lines: ['line-9', 'line-11']
+            i: 1, j: 1, k: 1, showPtrs: true, lines: ['line-9']
         },
-
-        // --- Comparison 3: 27 vs 10 ---
         {
-            text: "<b>比较:</b> L[1] (27) vs R[1] (10)。<br>27 > 10，右边胜出。",
+            text: "<b>移动 k：</b> arr 指针后移。",
+            L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 9, 10, GHOST],
+            i: 1, j: 1, k: 2, showPtrs: true, lines: ['line-11']
+        },
+        {
+            text: "<b>比较：</b> L[1] (27) vs R[1] (10)。<br>27 > 10，右边小。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 9, 10, GHOST],
             i: 1, j: 1, k: 2, showPtrs: true,
             focus: ['cell-l-1', 'cell-r-1'], activeL: 1, activeR: 1, lines: ['line-4', 'line-7']
         },
         {
-            text: "<b>赋值:</b> 把 R[1] (10) 填入 arr[k]。",
+            text: "<b>赋值：</b> R[1] (10) 填入 arr[k]。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 10, GHOST],
             i: 1, j: 1, k: 2, showPtrs: true,
-            focus: ['cell-r-1', 'cell-arr-2'], copied: 2, lines: ['line-8']
+            focus: ['cell-r-1', 'cell-arr-2'], activeR: 1, copied: 2, lines: ['line-8']
         },
         {
-            text: "<b>指针移动:</b> j++, k++。<br>此时 j 溢出 (j=2, n2=2)。",
+            text: "<b>移动 j：</b> R 指针滑出。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 10, GHOST],
-            i: 1, j: 2, k: 3, showPtrs: true, lines: ['line-9', 'line-11']
+            i: 1, j: 2, k: 2, showPtrs: true, lines: ['line-9']
         },
-
-        // --- End of Main Loop ---
         {
-            text: "<b>Loop Check:</b> j=2, n2=2。j < n2 不成立。<br>主循环结束。",
+            text: "<b>移动 k：</b> arr 指针后移。",
+            L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 10, GHOST],
+            i: 1, j: 2, k: 3, showPtrs: true, lines: ['line-11']
+        },
+        {
+            text: "<b>检查：</b> j=2，右边已空。循环结束。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 10, GHOST],
             i: 1, j: 2, k: 3, showPtrs: true, lines: ['line-3']
         },
-
-        // --- Cleanup L ---
         {
-            text: "<b>剩余处理:</b> L 数组还有剩 (i < n1)。<br>进入收尾循环。",
+            text: "<b>剩余：</b> 处理左边剩余的 27。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 10, GHOST],
-            i: 1, j: 2, k: 3, showPtrs: true, 
+            i: 1, j: 2, k: 3, showPtrs: true,
             focus: ['cell-l-1'], lines: ['line-14']
         },
         {
-            text: "<b>搬运:</b> 剩下的 27 填入 arr。",
+            text: "<b>搬运：</b> 27 填入最后位置。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 27, GHOST],
             i: 1, j: 2, k: 3, showPtrs: true,
             focus: ['cell-l-1', 'cell-arr-3'], copied: 3, lines: ['line-14']
         },
         {
-            text: "<b>收尾:</b> 指针移动 i++, k++。<br>i 达到 n1，循环结束。",
+            text: "<b>移动：</b> i 和 k 指针向后移 (i++ k++)。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 27, GHOST],
-            i: 2, j: 2, k: 4, showPtrs: true, lines: ['line-14']
+            i: 2, j: 2, k: 4, showPtrs: true, lines: ['line-14'] // 这里应该是循环内逻辑，简化显示
         },
-
-        // --- Done ---
         {
-            text: "<b>完成:</b> 本次 Merge 结束。",
+            text: "<b>完成：</b> 排序结束。",
             L: [3, 27, GHOST], R: [9, 10, GHOST], arr: [3, 9, 10, 27, GHOST],
             i: 2, j: 2, k: 4, showPtrs: true,
-            focus: ['arr-container'], copied: 3, lines: ['line-end']
+            focus: ['arr-container'], copied: 3, lines: []
         }
     ];
 
     let currentStep = 0;
 
-    // DOM Helpers
     function createCells(data, containerId, prefix, isArr = false) {
         const container = document.getElementById(containerId);
         container.innerHTML = data.map((val, idx) => {
-            const isGhost = val === GHOST; const isEmpty = val === EMPTY;
-            return `<div class="cell-wrapper" id="wrapper-${prefix}-${idx}"><div class="cell ${isGhost ? 'cell-ghost' : ''} ${isEmpty ? 'cell-empty' : ''}" id="cell-${prefix}-${idx}">${isGhost || isEmpty ? '' : val}</div><div class="index">${prefix}=${isArr ? idx + 2 : idx}</div></div>`
-        }).join('');
+            const isGhost = val === GHOST; 
+            const isEmpty = val === EMPTY;
+            return `
+            <div class="cell-wrapper" id="wrapper-${prefix}-${idx}">
+                <div class="cell ${isGhost ? 'cell-ghost' : ''} ${isEmpty ? 'cell-empty' : ''}" id="cell-${prefix}-${idx}">
+                    ${isGhost || isEmpty ? '' : val}
+                </div>
+                <div class="index">${prefix}=${isArr ? idx + 2 : idx}</div>
+            </div>
+        `}).join('');
     }
 
     function alignPointer(ptrId, sectionId, targetWrapperId) {
-        const ptr = document.getElementById(ptrId); const section = document.getElementById(sectionId); const target = document.getElementById(targetWrapperId);
-        if (ptr && target && section) {
-            const relativeX = (target.getBoundingClientRect().left - section.getBoundingClientRect().left) + (target.offsetWidth / 2) - (54 / 2); 
-            ptr.style.transform = `translateX(${relativeX}px)`;
-        }
-    }
-    
-    function renderBracket(config) {
-        const brackets = document.querySelectorAll('.range-bracket');
-        brackets.forEach(b => b.style.opacity = 0);
+        const ptr = document.getElementById(ptrId);
+        const section = document.getElementById(sectionId);
+        const target = document.getElementById(targetWrapperId);
         
-        if (config) {
-            const el = document.getElementById(config.id);
-            const startCell = document.getElementById(`wrapper-arr-${config.start}`);
-            if (el && startCell) {
-                // 54 width + 12 gap = 66px
-                const width = config.width * 66 - 12; 
-                el.style.width = `${width}px`;
-                el.style.left = `${startCell.offsetLeft}px`;
-                el.style.opacity = 1;
-            }
+        if (ptr && target && section) {
+            const sectionRect = section.getBoundingClientRect();
+            const targetRect = target.getBoundingClientRect();
+            const relativeX = (targetRect.left - sectionRect.left) + (targetRect.width / 2) - (56 / 2); 
+            ptr.style.transform = `translateX(${relativeX}px)`;
         }
     }
 
     function render() {
         const state = steps[currentStep];
-        
-        // Redraw cells for state updates
-        createCells(state.L, 'l-container', 'l'); 
-        createCells(state.R, 'r-container', 'r'); 
+
+        // 0. 重绘 DOM (因为数据变了，L和R从空变有)
+        // 这一步有点重，但在演示里是安全的
+        createCells(state.L, 'l-container', 'l');
+        createCells(state.R, 'r-container', 'r');
         createCells(state.arr, 'arr-container', 'arr', true);
-        
-        // Visibility
-        document.getElementById('section-l').style.opacity = state.hideL ? 0 : 1; 
+
+        // 1. 控制区域显示/隐藏
+        document.getElementById('section-l').style.opacity = state.hideL ? 0 : 1;
         document.getElementById('section-r').style.opacity = state.hideR ? 0 : 1;
         
-        // Math
-        const mathZone = document.getElementById('math-zone');
-        if (state.math) {
-            mathZone.classList.add('math-visible');
-            document.getElementById('math-formula').innerHTML = state.math.formula;
-            document.getElementById('math-explain').innerHTML = state.math.explain;
-        } else {
-            mathZone.classList.remove('math-visible');
+        // 2. 指针控制
+        const ptrs = ['ptr-i', 'ptr-j', 'ptr-k'];
+        ptrs.forEach(id => {
+            const el = document.getElementById(id);
+            if (state.showPtrs) {
+                el.classList.add('pointer-visible');
+            } else {
+                el.classList.remove('pointer-visible');
+            }
+        });
+
+        if (state.showPtrs) {
+            // 延迟一丢丢等待DOM重绘完成
+             setTimeout(() => {
+                alignPointer('ptr-i', 'section-l', `wrapper-l-${state.i}`);
+                alignPointer('ptr-j', 'section-r', `wrapper-r-${state.j}`);
+                alignPointer('ptr-k', 'section-arr', `wrapper-arr-${state.k}`);
+             }, 0);
         }
 
-        renderBracket(state.bracket);
-
-        // Pointers
-        ['ptr-i', 'ptr-j', 'ptr-k'].forEach(id => document.getElementById(id).classList.toggle('pointer-visible', !!state.showPtrs));
-        if (state.showPtrs) setTimeout(() => { alignPointer('ptr-i', 'section-l', `wrapper-l-${state.i}`); alignPointer('ptr-j', 'section-r', `wrapper-r-${state.j}`); alignPointer('ptr-k', 'section-arr', `wrapper-arr-${state.k}`); }, 0);
-
-        // Styles & Focus
+        // 3. 样式高亮逻辑
         const allCells = document.querySelectorAll('.cell');
         let focusIds = new Set(state.focus || []);
-        if (state.showPtrs) { focusIds.add(`cell-l-${state.i}`); focusIds.add(`cell-r-${state.j}`); focusIds.add(`cell-arr-${state.k}`); }
         
+        // 如果显示指针，开启护航模式
+        if (state.showPtrs) {
+            focusIds.add(`cell-l-${state.i}`);
+            focusIds.add(`cell-r-${state.j}`);
+            focusIds.add(`cell-arr-${state.k}`);
+        }
+
         allCells.forEach(el => {
-            if (state.focus && state.focus.includes(el.id) && el.id.includes('cell-arr-') && !state.showPtrs) { el.classList.add('source-cell'); return; }
-            if (state.copied !== undefined && el.id === `cell-arr-${state.copied}`) { el.classList.add('copied-cell'); return; }
-            if ((state.activeL !== undefined && el.id === `cell-l-${state.activeL}`) || (state.activeR !== undefined && el.id === `cell-r-${state.activeR}`)) { el.classList.add('highlight-cell'); return; }
+            // Setup阶段的特殊高亮: source-cell (蓝色)
+            if (state.focus && state.focus.includes(el.id) && el.id.includes('cell-arr-') && !state.showPtrs) {
+                 el.classList.add('source-cell');
+                 return;
+            }
+            if (state.focus && state.focus.includes(el.id) && (el.id.includes('cell-l-') || el.id.includes('cell-r-')) && !state.showPtrs) {
+                 // 复制目标稍微高亮一下
+                 el.style.borderColor = "#2188ff";
+                 return;
+            }
+
+            // 常规 Merge 阶段高亮
+            if (state.copied !== undefined && el.id === `cell-arr-${state.copied}`) {
+                el.classList.add('copied-cell');
+                return;
+            }
+            if ((state.activeL !== undefined && el.id === `cell-l-${state.activeL}`) ||
+                (state.activeR !== undefined && el.id === `cell-r-${state.activeR}`)) {
+                el.classList.add('highlight-cell');
+                return;
+            }
             
-            if (!focusIds.has(el.id) && !el.classList.contains('cell-ghost') && !el.classList.contains('cell-empty')) { el.classList.add('dimmed'); }
+            // 聚光灯
+            if (!focusIds.has(el.id) && !el.classList.contains('cell-ghost') && !el.classList.contains('cell-empty')) {
+                el.classList.add('dimmed');
+            }
         });
 
         document.getElementById('log-text').innerHTML = state.text;
         document.getElementById('step-count').innerText = `${currentStep + 1} / ${steps.length}`;
         document.getElementById('btn-prev').disabled = currentStep === 0;
         document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
-        
+
         document.querySelectorAll('.code-line').forEach(el => el.classList.remove('code-active'));
         if(state.lines) state.lines.forEach(id => document.getElementById(id)?.classList.add('code-active'));
     }
 
-    function nextStep() { if (currentStep < steps.length - 1) { currentStep++; render(); } }
-    function prevStep() { if (currentStep > 0) { currentStep--; render(); } }
+    function nextStep() {
+        if (currentStep < steps.length - 1) { currentStep++; render(); }
+    }
+    function prevStep() {
+        if (currentStep > 0) { currentStep--; render(); }
+    }
 
-    // Keyboard bindings
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowRight') nextStep();
-        if (e.key === 'ArrowLeft') prevStep();
-    });
-
-    render(); window.addEventListener('resize', () => render());
+    // 启动
+    render();
+    window.addEventListener('resize', () => render());
 </script>
 
 </body>
