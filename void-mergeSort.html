@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Merge Sort 递归全景演示</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f4f6f8; 
+            margin: 0; padding: 20px;
+            display: flex; justify-content: center; height: 100vh; box-sizing: border-box;
+        }
+
+        .main-wrapper {
+            display: flex; width: 100%; max-width: 1280px;
+            background: white; border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1); overflow: hidden; height: 90vh;
+        }
+
+        /* 布局调整：左侧可视化更宽一些 */
+        .viz-panel { flex: 7; padding: 40px; border-right: 1px solid #f0f1f4; display: flex; flex-direction: column; position: relative; }
+        .code-panel { flex: 3; background-color: #fafbfc; padding: 30px; overflow-y: auto; border-left: 1px solid #eaecef; }
+
+        h2 { margin-top: 0; color: #24292e; font-size: 24px; margin-bottom: 24px; font-weight: 700;}
+        
+        .log-box { 
+            background: #f1f8ff; border-left: 4px solid #0366d6; 
+            padding: 20px; border-radius: 6px; margin-bottom: 30px; 
+            font-size: 16px; line-height: 1.6; color: #24292e; 
+            min-height: 60px;
+            transition: background-color 0.3s;
+        }
+
+        /* 递归栈可视化区域 */
+        .stack-container {
+            display: flex;
+            flex-direction: column-reverse; /* 栈底在下 */
+            background: #f6f8fa;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 40px;
+            height: 200px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .stack-label {
+            position: absolute; top: 5px; right: 10px;
+            font-size: 12px; font-weight: bold; color: #959da5; text-transform: uppercase;
+        }
+        .stack-frame {
+            background: white;
+            border: 1px solid #d1d5da;
+            border-left: 4px solid #6a737d; /* 默认灰色 */
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin-top: 6px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 13px;
+            display: flex; justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+            opacity: 0; transform: translateX(-20px); /* 进场动画 */
+            animation: slideIn 0.3s forwards;
+        }
+        @keyframes slideIn { to { opacity: 1; transform: translateX(0); } }
+        
+        .frame-active { border-left-color: #28a745; background-color: #f0fff4; font-weight: bold; }
+        .frame-waiting { border-left-color: #dbab09; opacity: 0.7; }
+        .frame-merged { border-left-color: #0366d6; background-color: #f1f8ff; }
+
+        /* 数组展示区域 */
+        .array-section { 
+            display: flex; flex-direction: column; align-items: center; 
+            position: relative; padding-top: 40px; margin-top: auto; margin-bottom: 40px;
+        }
+        
+        .array-row { display: flex; gap: 14px; position: relative; }
+
+        .cell-wrapper { display: flex; flex-direction: column; align-items: center; position: relative; }
+        
+        .cell {
+            width: 56px; height: 56px; 
+            border: 2px solid #e1e4e8; border-radius: 12px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: 700; color: #24292e;
+            background: #fff; 
+            transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 10;
+        }
+        .index { font-size: 12px; color: #959da5; margin-top: 10px; font-family: 'SFMono-Regular', Consolas, monospace; }
+
+        /* 高亮样式 */
+        .cell-in-scope { border-color: #2188ff; background-color: #f1f8ff; }
+        .cell-sorted { border-color: #28a745; background-color: #dcffe4; color: #1e7e34; }
+        .cell-inactive { opacity: 0.4; filter: grayscale(100%); }
+
+        /* 范围指示器 */
+        .scope-bracket {
+            position: absolute;
+            height: 10px;
+            border: 2px solid #2188ff;
+            border-bottom: none;
+            top: -15px;
+            transition: all 0.4s;
+            z-index: 5;
+        }
+        .scope-label {
+            position: absolute;
+            top: -35px;
+            font-size: 12px; font-weight: bold; color: #0366d6;
+            transition: all 0.4s;
+            white-space: nowrap;
+        }
+        
+        /* 切分线 */
+        .split-line {
+            position: absolute;
+            width: 2px;
+            height: 80px;
+            background: #d73a49;
+            top: -10px;
+            z-index: 20;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(215, 58, 73, 0.4);
+            transition: left 0.4s;
+            display: none;
+        }
+        .split-label {
+             position: absolute; top: -20px; left: -14px;
+             background: #d73a49; color: white; 
+             font-size: 10px; padding: 2px 4px; border-radius: 4px;
+             white-space: nowrap;
+        }
+
+        /* 代码样式 */
+        .code-content { font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; font-size: 13px; line-height: 1.8; color: #6a737d; }
+        .code-line { padding: 0 16px; border-radius: 6px; border-left: 4px solid transparent; display: block; margin-bottom: 2px;}
+        .code-active { color: #24292e; background-color: #fffbdd; border-left-color: #f1e05a; font-weight: 600; }
+        .code-keyword { color: #d73a49; } .code-comment { color: #969896; } .code-type { color: #d73a49; }
+        .indent-1 { margin-left: 20px; } .indent-2 { margin-left: 40px; }
+
+        .controls { margin-top: auto; display: flex; gap: 16px; padding-top: 24px; border-top: 1px solid #eaecef; }
+        button { 
+            padding: 12px 32px; font-size: 15px; font-weight: 600; cursor: pointer; 
+            background: #24292e; color: white; border: none; border-radius: 8px; 
+            transition: all 0.2s; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        button:hover { background: #000; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15); }
+        button:disabled { background: #f6f8fa; color: #959da5; cursor: not-allowed; transform: none; box-shadow: none; border: 1px solid #e1e4e8; }
+
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div style="position: absolute; top: 0; left: 0; right: 0; background: #24292e; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 100;">
+        <a href="index.html" style="color: white; text-decoration: none; font-weight: bold; font-size: 14px;">← Home</a>
+        <div style="display: flex; gap: 15px; font-size: 14px;">
+            <span style="color: rgba(255,255,255,0.5);">Macro: Recursion</span>
+            <a href="void-merge.html" style="color: #79b8ff; text-decoration: none;">Switch to Micro: Merge →</a>
+        </div>
+    </div>
+    <div class="viz-panel">
+        <h2 style="margin-top: 30px;">Merge Sort 递归全景</h2>
+        <div class="log-box" id="log-text">准备开始...</div>
+
+        <div class="stack-container" id="stack-view">
+            <div class="stack-label">Recursion Stack</div>
+            <!-- 栈帧将动态插入 -->
+        </div>
+
+        <div class="array-section" id="array-container-wrapper">
+            <div class="scope-bracket" id="scope-bracket"></div>
+            <div class="scope-label" id="scope-label"></div>
+            <div class="split-line" id="split-line"><div class="split-label">mid</div></div>
+            <div class="array-row" id="arr-container"></div>
+        </div>
+
+        <div class="controls">
+            <button onclick="prevStep()" id="btn-prev" disabled>上一步</button>
+            <button onclick="nextStep()" id="btn-next">下一步</button>
+            <div style="margin-left:auto; display:flex; align-items:center; color:#586069; font-size:14px;">
+                Step: <span id="step-count" style="margin-left:6px; font-weight:700; color:#24292e;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="code-panel">
+        <div class="code-content">
+            <div class="code-line" id="line-func"><span class="code-keyword">public static void</span> mergeSort(<span class="code-type">int</span>[] arr, <span class="code-type">int</span> left, <span class="code-type">int</span> right) {</div>
+            <div class="code-line indent-1" id="line-if"><span class="code-keyword">if</span> (left < right) {</div>
+            <div class="code-line indent-2" id="line-mid"><span class="code-type">int</span> mid = (left + right) / 2;</div>
+            <br>
+            <div class="code-line indent-2" id="line-left">mergeSort(arr, left, mid); <span class="code-comment">// 递归左边</span></div>
+            <br>
+            <div class="code-line indent-2" id="line-right">mergeSort(arr, mid + 1, right); <span class="code-comment">// 递归右边</span></div>
+            <br>
+            <div class="code-line indent-2" id="line-merge">merge(arr, left, mid, right); <span class="code-comment">// 合并</span></div>
+            <div class="code-line indent-1" id="line-end">}</div>
+            <div class="code-line" id="line-close">}</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 初始数据
+    const INITIAL_ARR = [38, 27, 43, 3, 9, 82];
+    
+    // 步骤定义
+    // structure: 
+    // {
+    //   text: string, 
+    //   stack: Array<{range: string, active: boolean, type: 'call'|'wait'}>, 
+    //   arr: Array<number>, 
+    //   scope: [start, end] | null, 
+    //   mid: number | null,
+    //   lines: string[], 
+    //   highlight: 'scope' | 'sorted' | 'none'
+    // }
+    
+    // 辅助生成栈帧描述
+    const f = (l, r, status='active') => ({ l, r, status });
+
+    const steps = [
+        {
+            text: "<b>Initial:</b> 准备对数组进行归并排序。调用 mergeSort(0, 5)。",
+            stack: [],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: null, mid: null, lines: ['line-func']
+        },
+        // --- Level 1: [0, 5] ---
+        {
+            text: "<b>Call:</b> mergeSort(0, 5)。<br>检查 left < right (0 < 5)，成立。",
+            stack: [f(0,5)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,5], mid: null, lines: ['line-if']
+        },
+        {
+            text: "<b>Split:</b> 计算中间位置 mid = (0+5)/2 = 2。<br>准备拆分左半部分。",
+            stack: [f(0,5)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,5], mid: 2, lines: ['line-mid']
+        },
+        // --- Level 2: [0, 2] ---
+        {
+            text: "<b>Call (Left):</b> 递归调用 mergeSort(0, 2)。",
+            stack: [f(0,5,'wait'), f(0,2)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,2], mid: null, lines: ['line-left']
+        },
+        {
+            text: "<b>Split:</b> mid = (0+2)/2 = 1。<br>继续拆分左边。",
+            stack: [f(0,5,'wait'), f(0,2)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,2], mid: 1, lines: ['line-mid']
+        },
+        // --- Level 3: [0, 1] ---
+        {
+            text: "<b>Call (Left):</b> 递归调用 mergeSort(0, 1)。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,1], mid: null, lines: ['line-left']
+        },
+        {
+            text: "<b>Split:</b> mid = (0+1)/2 = 0。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,1], mid: 0, lines: ['line-mid']
+        },
+        // --- Level 4: [0, 0] ---
+        {
+            text: "<b>Call (Left):</b> 递归调用 mergeSort(0, 0)。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1,'wait'), f(0,0)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,0], mid: null, lines: ['line-left']
+        },
+        {
+            text: "<b>Base Case:</b> left (0) < right (0) 不成立。<br>只有一个元素，直接返回。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1,'wait'), f(0,0)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,0], mid: null, lines: ['line-if']
+        },
+        // --- Back to [0, 1] ---
+        {
+            text: "<b>Return:</b> 回到 mergeSort(0, 1)。准备递归右边。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,1], mid: 0, lines: ['line-right']
+        },
+        // --- Level 4: [1, 1] ---
+        {
+            text: "<b>Call (Right):</b> 递归调用 mergeSort(1, 1)。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1,'wait'), f(1,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [1,1], mid: null, lines: ['line-right']
+        },
+        {
+            text: "<b>Base Case:</b> left (1) < right (1) 不成立。直接返回。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1,'wait'), f(1,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [1,1], mid: null, lines: ['line-if']
+        },
+        // --- Back to [0, 1] -> Merge ---
+        {
+            text: "<b>Merge:</b> 左右都已返回。现在合并 [0] 和 [1]。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1)],
+            arr: [38, 27, 43, 3, 9, 82],
+            scope: [0,1], mid: 0, lines: ['line-merge']
+        },
+        {
+            text: "<b>Sorted:</b> 区间 [0, 1] 合并完成。<br>27 < 38，交换位置。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(0,1)],
+            arr: [27, 38, 43, 3, 9, 82], // sorted
+            scope: [0,1], mid: null, lines: ['line-merge'], sorted: true
+        },
+        // --- Back to [0, 2] ---
+        {
+            text: "<b>Return:</b> [0,1] 完成，回到 mergeSort(0, 2)。<br>准备递归右边 [2, 2]。",
+            stack: [f(0,5,'wait'), f(0,2)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [0,2], mid: 1, lines: ['line-right']
+        },
+        // --- Level 3: [2, 2] ---
+        {
+            text: "<b>Call (Right):</b> 递归调用 mergeSort(2, 2)。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(2,2)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [2,2], mid: null, lines: ['line-right']
+        },
+        {
+            text: "<b>Base Case:</b> 只有一个元素，返回。",
+            stack: [f(0,5,'wait'), f(0,2,'wait'), f(2,2)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [2,2], mid: null, lines: ['line-if']
+        },
+        // --- Back to [0, 2] -> Merge ---
+        {
+            text: "<b>Merge:</b> 合并 [0, 1] 和 [2]。",
+            stack: [f(0,5,'wait'), f(0,2)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [0,2], mid: 1, lines: ['line-merge']
+        },
+        {
+            text: "<b>Sorted:</b> 区间 [0, 2] 合并完成。<br>已经有序，保持不变。",
+            stack: [f(0,5,'wait'), f(0,2)],
+            arr: [27, 38, 43, 3, 9, 82], // sorted
+            scope: [0,2], mid: null, lines: ['line-merge'], sorted: true
+        },
+        // --- Back to [0, 5] ---
+        {
+            text: "<b>Return:</b> [0,2] 完成，回到 mergeSort(0, 5)。<br>现在左半部分 [0, 2] 都有序了。<br>准备递归处理整个右半部分 [3, 5]。",
+            stack: [f(0,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [0,5], mid: 2, lines: ['line-right']
+        },
+        // --- Level 2: [3, 5] ---
+        {
+            text: "<b>Call (Right):</b> 递归调用 mergeSort(3, 5)。",
+            stack: [f(0,5,'wait'), f(3,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,5], mid: null, lines: ['line-right']
+        },
+        {
+            text: "<b>Split:</b> mid = (3+5)/2 = 4。",
+            stack: [f(0,5,'wait'), f(3,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,5], mid: 4, lines: ['line-mid']
+        },
+        // --- Level 3: [3, 4] ---
+        {
+            text: "<b>Call (Left):</b> 递归调用 mergeSort(3, 4)。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(3,4)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,4], mid: null, lines: ['line-left']
+        },
+        {
+            text: "<b>Split:</b> mid = (3+4)/2 = 3。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(3,4)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,4], mid: 3, lines: ['line-mid']
+        },
+        // --- Level 4: [3, 3] ---
+        {
+            text: "<b>Call (Left):</b> 递归调用 mergeSort(3, 3)。Base Case 返回。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(3,4,'wait'), f(3,3)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,3], mid: null, lines: ['line-left']
+        },
+        // --- Back to [3, 4] ---
+        {
+            text: "<b>Call (Right):</b> 递归调用 mergeSort(4, 4)。Base Case 返回。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(3,4,'wait'), f(4,4)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [4,4], mid: null, lines: ['line-right']
+        },
+        // --- Merge [3, 4] ---
+        {
+            text: "<b>Merge:</b> 合并 [3] 和 [4]。<br>3 和 9，无需交换。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(3,4)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,4], mid: 3, lines: ['line-merge'], sorted: true
+        },
+        // --- Back to [3, 5] ---
+        {
+            text: "<b>Return:</b> [3,4] 完成。递归右边 [5, 5]。",
+            stack: [f(0,5,'wait'), f(3,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,5], mid: 4, lines: ['line-right']
+        },
+        // --- Level 3: [5, 5] ---
+        {
+            text: "<b>Call (Right):</b> 递归调用 mergeSort(5, 5)。Base Case 返回。",
+            stack: [f(0,5,'wait'), f(3,5,'wait'), f(5,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [5,5], mid: null, lines: ['line-right']
+        },
+        // --- Merge [3, 5] ---
+        {
+            text: "<b>Merge:</b> 合并 [3, 4] (3, 9) 和 [5] (82)。",
+            stack: [f(0,5,'wait'), f(3,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [3,5], mid: 4, lines: ['line-merge']
+        },
+        {
+            text: "<b>Sorted:</b> 右半部分 [3, 5] 排序完成。<br>结果: 3, 9, 82。",
+            stack: [f(0,5,'wait'), f(3,5)],
+            arr: [27, 38, 43, 3, 9, 82], // sorted
+            scope: [3,5], mid: null, lines: ['line-merge'], sorted: true
+        },
+        // --- Back to [0, 5] -> Final Merge ---
+        {
+            text: "<b>Return:</b> 左右两边都排好了！<br>左边: [27, 38, 43]<br>右边: [3, 9, 82]",
+            stack: [f(0,5)],
+            arr: [27, 38, 43, 3, 9, 82],
+            scope: [0,5], mid: 2, lines: ['line-merge']
+        },
+        {
+            text: "<b>Final Merge:</b> 执行最后的合并操作...",
+            stack: [f(0,5)],
+            arr: [3, 9, 27, 38, 43, 82], // FINAL SORT
+            scope: [0,5], mid: 2, lines: ['line-merge'], sorted: true
+        },
+        {
+            text: "<b>Done:</b> 排序结束。栈清空。",
+            stack: [],
+            arr: [3, 9, 27, 38, 43, 82],
+            scope: null, mid: null, lines: ['line-close']
+        }
+    ];
+
+    let currentStep = 0;
+
+    function render() {
+        const state = steps[currentStep];
+
+        // 1. 渲染栈 (Stack)
+        const stackContainer = document.getElementById('stack-view');
+        stackContainer.innerHTML = '<div class="stack-label">Recursion Stack</div>' + state.stack.map(frame => {
+            const className = frame.status === 'active' ? 'frame-active' : 'frame-waiting';
+            return `<div class="stack-frame ${className}">
+                <span>mergeSort(arr, ${frame.l}, ${frame.r})</span>
+                <span>${frame.status === 'active' ? 'Running' : 'Waiting'}</span>
+            </div>`;
+        }).join('');
+        // 自动滚动到底部 (因为是 column-reverse，其实是顶部)
+        stackContainer.scrollTop = stackContainer.scrollHeight;
+
+        // 2. 渲染数组
+        const arrContainer = document.getElementById('arr-container');
+        arrContainer.innerHTML = state.arr.map((val, idx) => {
+            // 判断格子状态
+            let classes = ['cell'];
+            let inScope = false;
+            
+            if (state.scope && idx >= state.scope[0] && idx <= state.scope[1]) {
+                inScope = true;
+                classes.push('cell-in-scope');
+                if (state.sorted) classes.push('cell-sorted');
+            } else {
+                classes.push('cell-inactive');
+            }
+
+            return `
+            <div class="cell-wrapper" id="wrapper-arr-${idx}">
+                <div class="${classes.join(' ')}">${val}</div>
+                <div class="index">${idx}</div>
+            </div>`;
+        }).join('');
+
+        // 3. 渲染范围指示器 (Bracket & Mid Line)
+        const scopeBracket = document.getElementById('scope-bracket');
+        const scopeLabel = document.getElementById('scope-label');
+        const splitLine = document.getElementById('split-line');
+        const parent = document.getElementById('array-container-wrapper');
+
+        // 使用 getBoundingClientRect 进行精确对齐，修复居中导致的偏移问题
+        const getPos = (idx) => {
+            const el = document.getElementById(`wrapper-arr-${idx}`);
+            if (!el || !parent) return null;
+            const pRect = parent.getBoundingClientRect();
+            const elRect = el.getBoundingClientRect();
+            return {
+                left: elRect.left - pRect.left,
+                right: elRect.right - pRect.left,
+                width: elRect.width,
+                center: (elRect.left - pRect.left) + elRect.width / 2
+            };
+        };
+
+        if (state.scope) {
+            const startPos = getPos(state.scope[0]);
+            const endPos = getPos(state.scope[1]);
+
+            if (startPos && endPos) {
+                // Bracket 覆盖从 start 左边到 end 右边
+                const width = endPos.right - startPos.left;
+                
+                scopeBracket.style.left = startPos.left + 'px';
+                scopeBracket.style.width = width + 'px';
+                scopeBracket.style.opacity = 1;
+                
+                // Label 居中
+                const labelWidth = 60; // 估算
+                scopeLabel.style.left = (startPos.left + width/2 - labelWidth/2) + 'px';
+                scopeLabel.style.width = labelWidth + 'px'; // 确保居中
+                scopeLabel.style.textAlign = 'center';
+                scopeLabel.style.opacity = 1;
+                scopeLabel.innerText = `[${state.scope[0]}, ${state.scope[1]}]`;
+            }
+        } else {
+            scopeBracket.style.opacity = 0;
+            scopeLabel.style.opacity = 0;
+        }
+
+        if (state.mid !== null && state.scope) {
+            const midPos = getPos(state.mid);
+            if (midPos) {
+                // Mid 线画在 mid 元素的右侧缝隙中
+                // 缝隙宽度 = 14px (gap)，线宽 2px
+                // 应该在 mid.right + gap/2 - 1
+                const lineLeft = midPos.right + 7 - 1; 
+                splitLine.style.left = lineLeft + 'px';
+                splitLine.style.display = 'block';
+            }
+        } else {
+            splitLine.style.display = 'none';
+        }
+
+        // 4. 文字和代码
+        document.getElementById('log-text').innerHTML = state.text;
+        document.getElementById('step-count').innerText = `${currentStep + 1} / ${steps.length}`;
+        document.getElementById('btn-prev').disabled = currentStep === 0;
+        document.getElementById('btn-next').disabled = currentStep === steps.length - 1;
+
+        document.querySelectorAll('.code-line').forEach(el => el.classList.remove('code-active'));
+        if(state.lines) state.lines.forEach(id => document.getElementById(id)?.classList.add('code-active'));
+    }
+
+    function nextStep() {
+        if (currentStep < steps.length - 1) { currentStep++; render(); }
+    }
+    function prevStep() {
+        if (currentStep > 0) { currentStep--; render(); }
+    }
+
+    // 启动
+    render();
+    window.addEventListener('resize', () => render());
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'Right') nextStep();
+        if (e.key === 'ArrowLeft' || e.key === 'Left') prevStep();
+    });
+
+</script>
+</body>
+</html>
