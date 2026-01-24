@@ -1,11 +1,12 @@
 # Codebase Guide for Agents
 
 ## Project Overview
-This project is a suite of static HTML visualizations for the Merge Sort algorithm, designed for educational purposes.
+This project is a suite of static HTML visualizations for the Merge Sort algorithm, designed for AP CSA students.
 It consists of:
 1. `void-merge.html`: Micro-level visualization of the `merge()` function (pointer movements, comparisons).
 2. `void-mergeSort.html`: Macro-level visualization of the `mergeSort()` recursion (call stack, divide & conquer).
-3. `Main.java`: Reference implementation of the algorithm in Java.
+3. `index.html`: The landing page connecting the tools.
+4. `Main.java`: Reference implementation (Source of Truth).
 
 ## Development & Build Workflow
 
@@ -13,44 +14,44 @@ It consists of:
 - **Type**: Static HTML/CSS/JS.
 - **Runtime**: Modern Web Browser (Chrome, Firefox, Safari, Edge).
 - **Dependencies**: None (Zero-dependency).
-- **Build Tools**: None. No `npm`, `webpack`, or `javac` required for the HTML files.
+- **Build Tools**: None. No `npm`, `webpack`, or `javac` required for HTML files.
 
 ### Commands
-Since this is a static project, "commands" are manual actions or simple checks.
 
-- **Run/Preview**:
-  - Open the `.html` file directly in a browser.
-  - OR use a local server: `python3 -m http.server 8000` and navigate to `http://localhost:8000/void-merge.html`.
+**1. Run/Preview (Local Server)**
+Since strict pathing can be an issue with file:// protocol, use a Python simple server:
+```bash
+# Run this in the project root
+python3 -m http.server 8000
+# Access: http://localhost:8000
+```
 
-- **Lint (Manual)**:
-  - Check browser console for errors.
-  - Ensure no `eslint` or `prettier` config is violated (implicit standard).
+**2. Linting (Manual)**
+- **Console Check**: Open DevTools > Console. Ensure 0 errors on load and during navigation.
+- **Visual Check**: Ensure flexbox layouts don't break on window resize (`window.addEventListener('resize', render)` is required).
 
-- **Test**:
-  - **Manual Verification**:
-    1. Open the file.
-    2. Click "Next Step" until the end.
-    3. Click "Previous Step" back to start.
-    4. Verify:
-       - Visual elements (arrays, pointers) align correctly.
-       - Log text matches the visual action.
-       - Logic follows the standard Merge Sort algorithm.
-       - No console errors appear during navigation.
+**3. Testing (Manual Verification)**
+To "run a test", perform this sequence:
+1. Open the target file (e.g., `void-merge.html`).
+2. **Forward Test**: Click "Next Step" (or ArrowRight) until the end.
+   - *Expectation*: Steps progress logically, log text updates, pointers move, "Next" disables at end.
+3. **Backward Test**: Click "Previous Step" (or ArrowLeft) back to start.
+   - *Expectation*: State restores perfectly, "Prev" disables at start.
+4. **Logic Check**: Compare visualization against `Main.java` logic.
 
 ## Code Structure & Architecture
 
 ### Single-File Rule
 **CRITICAL**: Keep HTML, CSS, and JavaScript in a **SINGLE FILE**.
-- Do NOT split into `.css` or `.js` files.
 - Structure:
   ```html
   <!DOCTYPE html>
-  <html>
+  <html lang="zh-CN">
   <head>
       <style>/* CSS here */</style>
   </head>
   <body>
-      <!-- HTML Layout -->
+      <!-- Layout -->
       <script>
           // JS Logic
       </script>
@@ -60,99 +61,62 @@ Since this is a static project, "commands" are manual actions or simple checks.
 
 ### State-Driven Architecture
 The visualization is **stateless logic** over **stateful data**.
-1. **`steps` Array**: The core data structure. A pre-calculated (or hardcoded) array of state objects.
-   - Each state object contains *everything* needed to render that frame (array contents, pointer indices, active lines of code, log message).
-   - *Example Step Object*:
-     ```javascript
-     {
-         text: "Comparing 3 and 5...",
-         arr: [3, 5, 9],
-         i: 0, j: 1, // Pointers
-         lines: ['line-if'] // Highlighted code line ID
-     }
-     ```
-2. **`render()` Function**: Pure function (mostly).
+1. **`steps` Array**: A pre-calculated array of state objects.
+   - Contains *snapshot* of all data: `arr`, `i`, `j`, `k`, `text`, `activeLines`.
+   - *Immutability*: Prefer new array instances in steps over mutating shared arrays.
+2. **`render()` Function**: Pure function.
    - Reads `steps[currentStep]`.
-   - Clears DOM containers.
-   - Re-generates HTML strings for arrays/pointers based on the state.
-   - Updates CSS classes for highlighting.
-3. **Control Logic**:
-   - `nextStep()` / `prevStep()`: Simply increment/decrement `currentStep` and call `render()`.
+   - Clears DOM (`innerHTML`).
+   - Re-generates HTML strings for arrays/pointers.
+   - Updates CSS classes.
+3. **Navigation**: `currentStep` index + `render()` call.
 
 ## Code Style Guidelines
 
 ### General
 - **Indentation**: 4 spaces.
-- **Language**: 
-  - **Code/Comments**: English (mostly) or Mixed.
-  - **UI/Content**: **Simplified Chinese (zh-CN)**. This is an educational tool for Chinese speakers.
-- **Formatting**:
-  - Keep lines under 120 characters where possible.
-  - Use template literals (`` ` ``) for HTML string generation.
+- **Language**:
+  - **Code/Comments**: English or Mixed.
+  - **UI/Content**: **Simplified Chinese (zh-CN)**.
+- **Formatting**: Keep lines under 120 chars. Use template literals (`` ` ``).
 
 ### HTML & CSS
 - **Class Naming**: `kebab-case` (e.g., `.viz-panel`, `.stack-frame`).
-- **Layout**: Flexbox is preferred for centering and alignment.
-- **Color Palette**: GitHub-inspired (Clean, Professional).
-  - Blue: `#0366d6` (Primary/Info)
-  - Red: `#d73a49` (Danger/Pointer i)
-  - Green: `#28a745` (Success/Pointer k)
-  - Gray: `#f6f8fa` (Backgrounds)
-- **Positioning**: 
-  - Use `relative` for containers and `absolute` for pointers/overlays.
-  - Use `getBoundingClientRect()` in JS for precise alignment of overlays (like brackets or connecting lines) rather than hardcoded pixel offsets.
+- **Colors**:
+  - Blue: `#0366d6` (Primary), Red: `#d73a49` (Pointer i), Green: `#28a745` (Pointer k).
+- **Positioning**: Use `absolute` for pointers inside `relative` containers. Use `getBoundingClientRect()` for precise alignment.
 
 ### JavaScript
-- **Naming Conventions**:
-  - Variables/Functions: `camelCase` (e.g., `createCells`, `alignPointer`).
-  - Constants: `UPPER_CASE` for config (e.g., `EMPTY`, `GHOST`) or `Pascal_Snake` for initial data (`Arr_init`).
-  - DOM References: prefix with element type if helpful, or use IDs matching CSS (e.g., `btn-next`).
-- **Logic**:
-  - **Immutability**: Prefer creating new array states in `steps` rather than mutating a shared global array (though deep cloning is not strictly enforced, be careful).
-  - **DOM Manipulation**: Use `innerHTML` reconstruction for simplicity in this specific project type. Performance is not a concern for < 100 elements.
+- **Naming**: `camelCase` (vars/funcs), `UPPER_CASE` (constants), `PascalCase` (Classes/InitData).
+- **Constants**:
+  ```javascript
+  const EMPTY = 'EMPTY'; // Placeholder for uninitialized cell
+  const GHOST = null;    // Placeholder for hidden/ghost cell
+  ```
+- **DOM**: Use `document.getElementById` and `innerHTML` reconstruction.
+- **Safety**: Always check bounds `if (currentStep < steps.length - 1)`.
 
 ## Modification Rules for Agents
 
-1. **Preserve the Pattern**: 
-   - If adding a feature, ask: "Can this be represented as a property in the `steps` object?"
-   - If yes, add the property to the data and handle it in `render()`.
-   - Do NOT add ad-hoc `document.getElementById(...).style...` calls inside event listeners.
+1. **Preserve the Pattern**:
+   - Do NOT add stateful variables outside `steps` (except `currentStep`).
+   - All visual changes must be derived from `steps[currentStep]`.
 
 2. **Visual Consistency**:
-   - Reuse `.cell`, `.arrow`, `.code-line` classes.
-   - If creating new visual elements (e.g., a tree view), follow the existing color scheme.
+   - Reuse `.cell`, `.arrow`, `.code-line`.
+   - Pointer colors must match: i=Red, j=Blue, k=Green (or context equivalent).
 
 3. **Content**:
-   - Ensure all user-facing explanations are in **Simplified Chinese**.
-   - Keep technical terms (Start, End, Mid, Merge) in English if it helps clarity, or use standard translations.
+   - Explanations must be educational.
+   - Use `<b>Bold</b>` for key terms in log text.
 
-4. **Safety**:
-   - Always check bounds: `if (currentStep < steps.length - 1)`.
-   - Handle null/undefined in `render()` for optional state properties (e.g., `state.scope` might be null).
+4. **Reference Implementation**:
+   - `Main.java` is the Source of Truth.
+   - If `Main.java` says `i++`, the viz must show `i` moving.
 
-## Common Snippets
+## Agent Behavior Rules (Cursor/Copilot)
 
-### Step Navigation
-```javascript
-function nextStep() {
-    if (currentStep < steps.length - 1) { 
-        currentStep++; 
-        render(); 
-    }
-}
-```
-
-### Cell Generation
-```javascript
-// Use map to generate HTML string
-container.innerHTML = data.map((val, idx) => `
-    <div class="cell-wrapper">
-        <div class="cell ${val === EMPTY ? 'cell-empty' : ''}">${val}</div>
-        <div class="index">${idx}</div>
-    </div>
-`).join('');
-```
-
-## Java (Reference)
-- The `Main.java` file is the **source of truth** for the algorithm's logic.
-- If the visualization behavior deviates from `Main.java`, the visualization is likely wrong (unless it's a specific simplification for teaching).
+- **Planning**: Before writing code, analyze `steps` array structure.
+- **Editing**: When modifying `steps`, ensure previous/next steps maintain logical continuity.
+- **Debugging**: If pointers misalign, check `alignPointer()` calculation or CSS `width` of cells (usually 56px).
+- **No External Libs**: Do not import jQuery, React, or Bootstrap. Use Vanilla JS/CSS.
