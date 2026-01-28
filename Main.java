@@ -12,15 +12,21 @@ public class Main {
     }
 
     public static void mergeSort(int[] arr, int left, int right) {
-        if (left < right) { // 通过比较left和right的index，来不断拆分，直到只有一个元素（只剩一个index，自己不能小于自己）
-            int mid = (left + right) / 2;
+        if (left < right) { // 比较left和right的index
+                            // 直到只有一个元素（只剩一个index，自己不能小于自己），再开始
+
+            int mid = (left + right) / 2; // 拆成左边和右边
 
             mergeSort(arr, left, mid); // recursive 自己，拆分左边；
-            // 递归过程当中拆分出「左边的左边、左边的右边」……
-            mergeSort(arr, mid + 1, right); // recursive 自己，拆分右边；
-            // 递归过程当中拆分出「右边的左边、右边的右边」……
+                                       // 递归过程当中拆分出「左边的左边、左边的右边」……
+                                       // 直到不满足上面的if，就返回这一层，执行下面的拆分右边
 
-            merge(arr, left, mid, right); // 拆分到最小之后，再开始下面的具体merge操作
+            mergeSort(arr, mid + 1, right); // recursive 自己，拆分右边；
+                                            // 递归过程当中拆分出「右边的左边、右边的右边」……
+                                            // 直到不满足上面的if，就返回这一层，执行下面的比较排序和merge
+
+            merge(arr, left, mid, right); // 拆分到最小之后，开始下面的具体merge操作；
+                                          // merge完之后小组就排好序了，接着去merge右侧的
         }
     }
 
